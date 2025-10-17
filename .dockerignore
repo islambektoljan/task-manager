@@ -1,0 +1,19 @@
+# .dockerignore
+.git
+.gitignore
+README.md
+Dockerfile
+docker-compose.yml
+.dockerignore
+.idea
+.vscode
+*.db
+*.log
+.env
+go.sum
+vendor/
+**/vendor/
+**/*.test
+**/coverage.out
+**/tmp/
+**/build/

@@ -1,0 +1,93 @@
+services:
+  postgres:
+    image: postgres:13
+    environment:
+      POSTGRES_DB: taskmanager
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - app-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d taskmanager" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api-gateway:
+    image: krakend:latest
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./api-gateway/krakend.json:/etc/krakend/krakend.json
+    depends_on:
+      - auth-service
+      - task-service
+      - task-submission-service
+      - user-service
+    networks:
+      - app-network
+
+  auth-service:
+    build: ./auth-service
+    ports:
+      - "8081:8081"
+    environment:
+      - DB_URL=postgres://postgres:password@postgres:5432/taskmanager?sslmode=disable
+      - JWT_SECRET=your-super-secret-jwt-key-here-make-it-very-long-and-secure
+      - PORT=8081
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - app-network
+
+  task-service:
+    build: ./task-service
+    ports:
+      - "8082:8082"
+    environment:
+      - DB_URL=postgres://postgres:password@postgres:5432/taskmanager?sslmode=disable
+      - PORT=8082
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - app-network
+
+  task-submission-service:
+    build: ./task-submission-service
+    ports:
+      - "8083:8083"
+    environment:
+      - DB_URL=postgres://postgres:password@postgres:5432/taskmanager?sslmode=disable
+      - PORT=8083
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - app-network
+
+  user-service:
+    build: ./user-service
+    ports:
+      - "8084:8084"
+    environment:
+      - DB_URL=postgres://postgres:password@postgres:5432/taskmanager?sslmode=disable
+      - PORT=8084
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - app-network
+
+volumes:
+  postgres_data:
+
+networks:
+  app-network:
+    driver: bridge

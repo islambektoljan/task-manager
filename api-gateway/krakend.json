@@ -1,0 +1,211 @@
+{
+  "name": "Task Manager Gateway",
+  "version": 3,
+  "port": 8000,
+  "extra_config": {
+    "github_com/devopsfaith/krakend-gologging": {
+      "level": "DEBUG",
+      "prefix": "[KRAKEND]",
+      "syslog": false,
+      "stdout": true
+    }
+  },
+  "endpoints": [
+    {
+      "endpoint": "/register",
+      "method": "POST",
+      "output_encoding": "no-op",
+      "backend": [
+        {
+          "url_pattern": "/register",
+          "encoding": "no-op",
+          "method": "POST",
+          "host": [
+            "http://auth-service:8081"
+          ]
+        }
+      ]
+    },
+    {
+      "endpoint": "/login",
+      "method": "POST",
+      "output_encoding": "no-op",
+      "backend": [
+        {
+          "url_pattern": "/login",
+          "encoding": "no-op",
+          "method": "POST",
+          "host": [
+            "http://auth-service:8081"
+          ]
+        }
+      ]
+    },
+    {
+      "endpoint": "/logout",
+      "method": "POST",
+      "output_encoding": "no-op",
+      "input_headers": [
+        "Authorization"
+      ],
+      "backend": [
+        {
+          "url_pattern": "/logout",
+          "encoding": "no-op",
+          "host": [
+            "http://auth-service:8081"
+          ],
+          "headers_to_pass": [
+            "Authorization"
+          ]
+        }
+      ]
+    },
+    {
+      "endpoint": "/refresh",
+      "method": "POST",
+      "output_encoding": "no-op",
+      "input_headers": [
+        "Authorization"
+      ],
+      "backend": [
+        {
+          "url_pattern": "/refresh",
+          "encoding": "no-op",
+          "host": [
+            "http://auth-service:8081"
+          ],
+          "headers_to_pass": [
+            "Authorization"
+          ]
+        }
+      ]
+    },
+    {
+      "endpoint": "/health",
+      "method": "GET",
+      "backend": [
+        {
+          "url_pattern": "/health",
+          "host": [
+            "http://auth-service:8081"
+          ]
+        }
+      ]
+    },
+    {
+      "endpoint": "/tasks",
+      "method": "GET",
+      "headers_to_pass": [
+        "Authorization"
+      ],
+      "backend": [
+        {
+          "url_pattern": "/tasks",
+          "host": [
+            "http://task-service:8082"
+          ]
+        }
+      ]
+    },
+    {
+      "endpoint": "/tasks",
+      "method": "POST",
+      "headers_to_pass": [
+        "Authorization"
+      ],
+      "backend": [
+        {
+          "url_pattern": "/tasks",
+          "host": [
+            "http://task-service:8082"
+          ]
+        }
+      ]
+    },
+    {
+      "endpoint": "/tasks/{taskId}",
+      "method": "GET",
+      "backend": [
+        {
+          "url_pattern": "/tasks/{taskId}",
+          "host": [
+            "http://task-service:8082"
+          ]
+        }
+      ]
+    },
+    {
+      "endpoint": "/tasks/{taskId}",
+      "method": "PUT",
+      "backend": [
+        {
+          "url_pattern": "/tasks/{taskId}",
+          "host": [
+            "http://task-service:8082"
+          ]
+        }
+      ]
+    },
+    {
+      "endpoint": "/tasks/{taskId}",
+      "method": "DELETE",
+      "backend": [
+        {
+          "url_pattern": "/tasks/{taskId}",
+          "host": [
+            "http://task-service:8082"
+          ]
+        }
+      ]
+    },
+    {
+      "endpoint": "/submissions",
+      "method": "POST",
+      "backend": [
+        {
+          "url_pattern": "/submissions",
+          "host": [
+            "http://task-submission-service:8083"
+          ]
+        }
+      ]
+    },
+    {
+      "endpoint": "/submissions/{submissionId}",
+      "method": "GET",
+      "backend": [
+        {
+          "url_pattern": "/submissions/{submissionId}",
+          "host": [
+            "http://task-submission-service:8083"
+          ]
+        }
+      ]
+    },
+    {
+      "endpoint": "/profile",
+      "method": "GET",
+      "backend": [
+        {
+          "url_pattern": "/profile",
+          "host": [
+            "http://user-service:8084"
+          ]
+        }
+      ]
+    },
+    {
+      "endpoint": "/profile",
+      "method": "PUT",
+      "backend": [
+        {
+          "url_pattern": "/profile",
+          "host": [
+            "http://user-service:8084"
+          ]
+        }
+      ]
+    }
+  ]
+}

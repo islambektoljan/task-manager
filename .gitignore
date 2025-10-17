@@ -1,0 +1,75 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Binary outputs
+/bin/
+/dist/
+
+# Go workspace file
+go.work
+
+# Dependency directories
+vendor/
+**/vendor/
+
+# Go module files
+go.sum
+
+# IDE and editor directories
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Docker
+docker-compose.override.yml
+
+# Environment variables files
+.env
+*.env
+
+# Log files
+*.log
+logs/
+
+# Build artifacts
+**/build/
+**/tmp/
+
+# Coverage files
+*.out
+coverage.html
+coverage.txt
+
+# Kubernetes
+k8s/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Service specific binaries
+/auth-service/auth-service
+/task-service/task-service
+/task-submission-service/task-submission-service
+/user-service/user-service
+
+# KrakenD
+api-gateway/krakend.dump
