@@ -27,6 +27,10 @@ func main() {
 	// Connect to database
 	db := database.ConnectDB()
 
+	// Connect to Redis
+	redisClient := database.ConnectRedis()
+	defer redisClient.Close()
+
 	// Run migrations
 	if err := database.RunMigrations(db); err != nil {
 		log.Fatal("Failed to run migrations:", err)
@@ -35,19 +39,20 @@ func main() {
 	// Create router
 	r := gin.Default()
 
-	// Create auth handler
-	authHandler := handlers.NewAuthHandler(db)
+	// Create auth handler and middleware
+	authHandler := handlers.NewAuthHandler(db, redisClient)
+	authMiddleware := middleware.NewAuthMiddleware(redisClient)
 
 	// Public routes
 	r.POST("/register", authHandler.Register)
 	r.POST("/login", authHandler.Login)
-	
+
 	// Health check endpoint
 	r.GET("/health", authHandler.HealthCheck)
 
 	// Protected routes
 	auth := r.Group("/")
-	auth.Use(middleware.AuthMiddleware())
+	auth.Use(authMiddleware.AuthMiddleware())
 	{
 		auth.POST("/logout", authHandler.Logout)
 		auth.POST("/refresh", authHandler.RefreshToken)

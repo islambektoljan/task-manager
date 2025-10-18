@@ -1,15 +1,27 @@
 package middleware
 
 import (
+	"context"
+	"fmt"
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
+	"github.com/redis/go-redis/v9"
 )
 
-func AuthMiddleware() gin.HandlerFunc {
+type AuthMiddleware struct {
+	RedisClient *redis.Client
+}
+
+func NewAuthMiddleware(redisClient *redis.Client) *AuthMiddleware {
+	return &AuthMiddleware{RedisClient: redisClient}
+}
+
+func (am *AuthMiddleware) AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
@@ -24,6 +36,22 @@ func AuthMiddleware() gin.HandlerFunc {
 
 		if tokenString == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid Authorization header format"})
+			c.Abort()
+			return
+		}
+
+		// Проверяем, находится ли токен в черном списке
+		ctx := context.Background()
+		key := fmt.Sprintf("blacklist:%s", tokenString)
+		redisExists, err := am.RedisClient.Exists(ctx, key).Result()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+			c.Abort()
+			return
+		}
+
+		if redisExists == 1 {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Token has been revoked"})
 			c.Abort()
 			return
 		}
@@ -59,14 +87,37 @@ func AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		userID, exists := claims["user_id"]
-		if !exists {
+		userID, userIDExists := claims["user_id"]
+		if !userIDExists {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "user_id not found in token"})
 			c.Abort()
 			return
 		}
 
+		// Проверяем expiration time
+		exp, expExists := claims["exp"]
+		if !expExists {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "exp not found in token"})
+			c.Abort()
+			return
+		}
+
+		expFloat, ok := exp.(float64)
+		if !ok {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid exp format in token"})
+			c.Abort()
+			return
+		}
+
+		expTime := int64(expFloat)
+		if time.Now().Unix() > expTime {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Token has expired"})
+			c.Abort()
+			return
+		}
+
 		c.Set("userID", userID)
+		c.Set("token", tokenString)
 		c.Next()
 	}
 }

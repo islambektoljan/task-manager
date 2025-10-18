@@ -18,6 +18,21 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - app-network
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
   api-gateway:
     image: krakend:latest
     ports:
@@ -39,6 +54,7 @@ services:
     environment:
       - DB_URL=postgres://postgres:password@postgres:5432/taskmanager?sslmode=disable
       - JWT_SECRET=your-super-secret-jwt-key-here-make-it-very-long-and-secure
+      - REDIS_URL=redis://redis:6379
       - PORT=8081
     depends_on:
       postgres:
@@ -87,6 +103,7 @@ services:
 
 volumes:
   postgres_data:
+  redis_data:
 
 networks:
   app-network:

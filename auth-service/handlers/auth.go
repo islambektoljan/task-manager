@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"os"
 	"strings"
@@ -12,16 +14,18 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
 type AuthHandler struct {
-	DB *gorm.DB
+	DB          *gorm.DB
+	RedisClient *redis.Client
 }
 
-func NewAuthHandler(db *gorm.DB) *AuthHandler {
-	return &AuthHandler{DB: db}
+func NewAuthHandler(db *gorm.DB, redisClient *redis.Client) *AuthHandler {
+	return &AuthHandler{DB: db, RedisClient: redisClient}
 }
 
 type RegisterRequest struct {
@@ -206,6 +210,87 @@ func (h *AuthHandler) Login(c *gin.Context) {
 }
 
 func (h *AuthHandler) Logout(c *gin.Context) {
+	tokenInterface, exists := c.Get("token")
+	if !exists {
+		c.JSON(http.StatusBadRequest, ErrorResponse{
+			Success: false,
+			Error:   "Token not found in context",
+			Code:    http.StatusBadRequest,
+		})
+		return
+	}
+
+	tokenString, ok := tokenInterface.(string)
+	if !ok {
+		c.JSON(http.StatusBadRequest, ErrorResponse{
+			Success: false,
+			Error:   "Invalid token format",
+			Code:    http.StatusBadRequest,
+		})
+		return
+	}
+
+	// Парсим токен чтобы получить expiration time
+	parsedToken, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		return []byte(os.Getenv("JWT_SECRET")), nil
+	})
+
+	if err != nil || !parsedToken.Valid {
+		c.JSON(http.StatusBadRequest, ErrorResponse{
+			Success: false,
+			Error:   "Invalid token",
+			Code:    http.StatusBadRequest,
+		})
+		return
+	}
+
+	claims, ok := parsedToken.Claims.(jwt.MapClaims)
+	if !ok {
+		c.JSON(http.StatusBadRequest, ErrorResponse{
+			Success: false,
+			Error:   "Invalid token claims",
+			Code:    http.StatusBadRequest,
+		})
+		return
+	}
+
+	// Вычисляем оставшееся время жизни токена
+	exp, exists := claims["exp"].(float64)
+	if !exists {
+		c.JSON(http.StatusBadRequest, ErrorResponse{
+			Success: false,
+			Error:   "Token expiration not found",
+			Code:    http.StatusBadRequest,
+		})
+		return
+	}
+
+	expTime := time.Unix(int64(exp), 0)
+	now := time.Now()
+	ttl := expTime.Sub(now)
+
+	// Если TTL отрицательный, токен уже истек
+	if ttl <= 0 {
+		c.JSON(http.StatusOK, SuccessResponse{
+			Success: true,
+			Data:    gin.H{"message": "Token already expired"},
+		})
+		return
+	}
+
+	// Добавляем токен в черный список в Redis
+	ctx := context.Background()
+	key := fmt.Sprintf("blacklist:%s", tokenString)
+	err = h.RedisClient.Set(ctx, key, "revoked", ttl).Err()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, ErrorResponse{
+			Success: false,
+			Error:   "Could not logout",
+			Code:    http.StatusInternalServerError,
+		})
+		return
+	}
+
 	c.JSON(http.StatusOK, SuccessResponse{
 		Success: true,
 		Data:    gin.H{"message": "Successfully logged out"},
@@ -213,7 +298,6 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 }
 
 func (h *AuthHandler) RefreshToken(c *gin.Context) {
-	// Get user ID from context (set by auth middleware)
 	userIDInterface, exists := c.Get("userID")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, ErrorResponse{
@@ -222,6 +306,18 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 			Code:    http.StatusUnauthorized,
 		})
 		return
+	}
+
+	// Получаем текущий токен для добавления в черный список
+	tokenInterface, exists := c.Get("token")
+	if exists {
+		if tokenString, ok := tokenInterface.(string); ok {
+			// Добавляем старый токен в черный список
+			ctx := context.Background()
+			key := fmt.Sprintf("blacklist:%s", tokenString)
+			// Устанавливаем TTL 24 часа для старого токена
+			h.RedisClient.Set(ctx, key, "refreshed", 24*time.Hour)
+		}
 	}
 
 	// Convert userID to UUID
@@ -268,6 +364,7 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 }
 
 func (h *AuthHandler) HealthCheck(c *gin.Context) {
+	// Check database
 	sqlDB, err := h.DB.DB()
 	if err != nil {
 		c.JSON(http.StatusServiceUnavailable, ErrorResponse{
@@ -282,6 +379,17 @@ func (h *AuthHandler) HealthCheck(c *gin.Context) {
 		c.JSON(http.StatusServiceUnavailable, ErrorResponse{
 			Success: false,
 			Error:   "Database unreachable",
+			Code:    http.StatusServiceUnavailable,
+		})
+		return
+	}
+
+	// Check Redis
+	ctx := context.Background()
+	if err := h.RedisClient.Ping(ctx).Err(); err != nil {
+		c.JSON(http.StatusServiceUnavailable, ErrorResponse{
+			Success: false,
+			Error:   "Redis unreachable",
 			Code:    http.StatusServiceUnavailable,
 		})
 		return
