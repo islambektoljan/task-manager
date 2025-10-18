@@ -29,7 +29,11 @@ func main() {
 
 	// Connect to Redis
 	redisClient := database.ConnectRedis()
-	defer redisClient.Close()
+	defer func() {
+		if err := redisClient.Close(); err != nil {
+			log.Printf("Ошибка при закрытии Redis: %v", err)
+		}
+	}()
 
 	// Run migrations
 	if err := database.RunMigrations(db); err != nil {
