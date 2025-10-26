@@ -95,30 +95,34 @@
     },
     {
       "endpoint": "/tasks",
-      "method": "GET",
+      "method": "Post",
+      "output_encoding": "no-op",
       "headers_to_pass": [
         "Authorization"
       ],
-      "backend": [
-        {
-          "url_pattern": "/tasks",
-          "host": [
-            "http://task-service:8082"
+      "extra_config": {
+        "github.com/devopsfaith/krakend-jose/validator": {
+          "alg": "HS256",
+          "disable_audience_validation": true,
+          "disable_issuer_validation": true,
+          "secret": "your-super-secret-jwt-key-here-make-it-very-long-and-secure",
+          "claims_to_headers": [
+            {
+              "claim": "user_id",
+              "header": "X-User-ID"
+            }
           ]
         }
-      ]
-    },
-    {
-      "endpoint": "/tasks",
-      "method": "POST",
-      "headers_to_pass": [
-        "Authorization"
-      ],
+      },
       "backend": [
         {
           "url_pattern": "/tasks",
+          "encoding": "no-op",
           "host": [
             "http://task-service:8082"
+          ],
+          "headers_to_pass": [
+            "X-User-ID"
           ]
         }
       ]
