@@ -1,19 +1,20 @@
 package main
 
 import (
+	"auth-service/database"
+	"auth-service/handlers"
+	"auth-service/middleware"
+	"auth-service/monitoring"
+	"auth-service/utils"
 	"context"
 	"errors"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
-	"auth-service/database"
-	"auth-service/handlers"
-	"auth-service/middleware"
-
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 )
@@ -21,8 +22,15 @@ import (
 func main() {
 	// Load environment variables
 	if err := godotenv.Load(); err != nil {
-		log.Println("No .env file found")
+		utils.Log.Warn("No .env file found")
 	}
+
+	// Initialize logger
+	utils.InitLogger()
+	utils.Log.Info("Starting auth-service...")
+
+	// Initialize expvar metrics
+	monitoring.InitExpvar()
 
 	// Connect to database
 	db := database.ConnectDB()
@@ -31,35 +39,44 @@ func main() {
 	redisClient := database.ConnectRedis()
 	defer func() {
 		if err := redisClient.Close(); err != nil {
-			log.Printf("Ошибка при закрытии Redis: %v", err)
+			utils.Log.Errorf("Error closing Redis: %v", err)
 		}
 	}()
 
 	// Run migrations
 	if err := database.RunMigrations(db); err != nil {
-		log.Fatal("Failed to run migrations:", err)
+		utils.Log.Fatalf("Failed to run migrations: %v", err)
 	}
 
 	// Create router
 	r := gin.Default()
 
-	// Настройка CORS
-	//r.Use(cors.New(cors.Config{
-	//	AllowOrigins:     []string{"http://localhost:3000", "http://127.0.0.1:3000"},
-	//	AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-	//	AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "Accept"},
-	//	ExposeHeaders:    []string{"Content-Length"},
-	//	AllowCredentials: true,
-	//	MaxAge:           12 * time.Hour,
-	//}))
+	// CORS configuration - РАСКОММЕНТИРУЙТЕ ЭТО!
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:3000", "http://127.0.0.1:3000"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "Accept"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+	}))
 
 	// Create auth handler and middleware
 	authHandler := handlers.NewAuthHandler(db, redisClient)
 	authMiddleware := middleware.NewAuthMiddleware(redisClient)
 
+	// Security and monitoring middleware
+	r.Use(middleware.SecurityHeaders())
+	r.Use(middleware.RequestLogger())
+	r.Use(monitoring.MetricsMiddleware())
+
 	// Public routes
 	r.POST("/register", authHandler.Register)
 	r.POST("/login", authHandler.Login)
+
+	// Metrics endpoints
+	monitoring.RegisterMetricsHandler(r)
+	r.GET("/debug/vars", gin.WrapH(monitoring.ExpvarHandler())) // Добавьте этот endpoint
 
 	// Health check endpoint
 	r.GET("/health", authHandler.HealthCheck)
@@ -86,9 +103,9 @@ func main() {
 
 	// Start server in a goroutine
 	go func() {
-		log.Printf("Auth service starting on port %s", port)
+		utils.Log.Infof("Auth service starting on port %s", port)
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			log.Fatalf("Failed to start server: %v", err)
+			utils.Log.Fatalf("Failed to start server: %v", err)
 		}
 	}()
 
@@ -96,15 +113,15 @@ func main() {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
-	log.Println("Shutting down server...")
+	utils.Log.Info("Shutting down server...")
 
 	// Give outstanding requests 5 seconds to complete
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	if err := srv.Shutdown(ctx); err != nil {
-		log.Fatal("Server forced to shutdown:", err)
+		utils.Log.Fatalf("Server forced to shutdown: %v", err)
 	}
 
-	log.Println("Server exited")
+	utils.Log.Info("Server exited")
 }
