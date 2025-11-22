@@ -31,6 +31,7 @@ func NewAuthHandler(db *gorm.DB, redisClient *redis.Client) *AuthHandler {
 type RegisterRequest struct {
 	Email    string `json:"email" binding:"required,email"`
 	Password string `json:"password" binding:"required,min=6"`
+	Role     string `json:"role"`
 }
 
 type LoginRequest struct {
@@ -42,6 +43,7 @@ type AuthResponse struct {
 	Token  string    `json:"token"`
 	UserID uuid.UUID `json:"user_id"`
 	Email  string    `json:"email"`
+	Role   string    `json:"role"`
 }
 
 type ErrorResponse struct {
@@ -111,6 +113,11 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		Password: string(hashedPassword),
 	}
 
+	if req.Role == "admin" {
+		// Здесь можно добавить дополнительную проверку для создания администраторов
+		user.Role = req.Role
+	}
+
 	if result := h.DB.Create(&user); result.Error != nil {
 		errorMsg := "Could not create user account"
 		if strings.Contains(result.Error.Error(), "duplicate key") ||
@@ -132,7 +139,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	}
 
 	// Generate JWT token
-	token, err := h.generateToken(user.ID)
+	token, err := h.generateToken(user.ID, user.Role)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, ErrorResponse{
 			Success: false,
@@ -146,6 +153,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		Token:  token,
 		UserID: user.ID,
 		Email:  user.Email,
+		Role:   user.Role,
 	}
 
 	c.JSON(http.StatusCreated, SuccessResponse{
@@ -187,7 +195,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	}
 
 	// Generate JWT token
-	token, err := h.generateToken(user.ID)
+	token, err := h.generateToken(user.ID, user.Role)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, ErrorResponse{
 			Success: false,
@@ -201,6 +209,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		Token:  token,
 		UserID: user.ID,
 		Email:  user.Email,
+		Role:   user.Role,
 	}
 
 	c.JSON(http.StatusOK, SuccessResponse{
@@ -308,18 +317,6 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 		return
 	}
 
-	// Получаем текущий токен для добавления в черный список
-	tokenInterface, exists := c.Get("token")
-	if exists {
-		if tokenString, ok := tokenInterface.(string); ok {
-			// Добавляем старый токен в черный список
-			ctx := context.Background()
-			key := fmt.Sprintf("blacklist:%s", tokenString)
-			// Устанавливаем TTL 24 часа для старого токена
-			h.RedisClient.Set(ctx, key, "refreshed", 24*time.Hour)
-		}
-	}
-
 	// Convert userID to UUID
 	userIDStr, ok := userIDInterface.(string)
 	if !ok {
@@ -341,8 +338,31 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 		return
 	}
 
+	// Получаем пользователя из базы данных
+	var user models.User
+	if result := h.DB.Where("id = ?", userID).First(&user); result.Error != nil {
+		c.JSON(http.StatusUnauthorized, ErrorResponse{
+			Success: false,
+			Error:   "User not found",
+			Code:    http.StatusUnauthorized,
+		})
+		return
+	}
+
+	// Получаем текущий токен для добавления в черный список
+	tokenInterface, exists := c.Get("token")
+	if exists {
+		if tokenString, ok := tokenInterface.(string); ok {
+			// Добавляем старый токен в черный список
+			ctx := context.Background()
+			key := fmt.Sprintf("blacklist:%s", tokenString)
+			// Устанавливаем TTL 24 часа для старого токена
+			h.RedisClient.Set(ctx, key, "refreshed", 24*time.Hour)
+		}
+	}
+
 	// Generate new token
-	token, err := h.generateToken(userID)
+	token, err := h.generateToken(user.ID, user.Role)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, ErrorResponse{
 			Success: false,
@@ -355,6 +375,8 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 	response := AuthResponse{
 		Token:  token,
 		UserID: userID,
+		Email:  user.Email,
+		Role:   user.Role,
 	}
 
 	c.JSON(http.StatusOK, SuccessResponse{
@@ -401,10 +423,11 @@ func (h *AuthHandler) HealthCheck(c *gin.Context) {
 	})
 }
 
-func (h *AuthHandler) generateToken(userID uuid.UUID) (string, error) {
+func (h *AuthHandler) generateToken(userID uuid.UUID, role string) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"user_id": userID,
-		"exp":     time.Now().Add(time.Hour * 24).Unix(), // 24 hours
+		"role":    role,
+		"exp":     time.Now().Add(time.Hour * 24).Unix(),
 		"iat":     time.Now().Unix(),
 	})
 

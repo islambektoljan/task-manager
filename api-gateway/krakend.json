@@ -8,6 +8,14 @@
       "prefix": "[KRAKEND]",
       "syslog": false,
       "stdout": true
+    },
+    "github_com/devopsfaith/krakend-cors": {
+      "allow_origins": ["http://localhost:3000", "http://127.0.0.1:3000"],
+      "allow_methods": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+      "allow_headers": ["Origin", "Content-Type", "Authorization", "Accept", "X-Requested-With"],
+      "expose_headers": ["Content-Length"],
+      "allow_credentials": true,
+      "max_age": "12h"
     }
   },
   "endpoints": [
@@ -22,7 +30,13 @@
           "method": "POST",
           "host": [
             "http://auth-service:8081"
-          ]
+          ],
+          "extra_config": {
+            "github.com/devopsfaith/krakend-httpsecure": {
+              "allowed_hosts": [],
+              "ssl_proxy_headers": {}
+            }
+          }
         }
       ]
     },
@@ -37,7 +51,13 @@
           "method": "POST",
           "host": [
             "http://auth-service:8081"
-          ]
+          ],
+          "extra_config": {
+            "github.com/devopsfaith/krakend-httpsecure": {
+              "allowed_hosts": [],
+              "ssl_proxy_headers": {}
+            }
+          }
         }
       ]
     },
@@ -46,7 +66,8 @@
       "method": "POST",
       "output_encoding": "no-op",
       "input_headers": [
-        "Authorization"
+        "Authorization",
+        "Content-Type"
       ],
       "backend": [
         {
@@ -55,9 +76,13 @@
           "host": [
             "http://auth-service:8081"
           ],
-          "headers_to_pass": [
-            "Authorization"
-          ]
+          "headers_to_pass": ["Authorization", "Content-Type"],
+          "extra_config": {
+            "github.com/devopsfaith/krakend-httpsecure": {
+              "allowed_hosts": [],
+              "ssl_proxy_headers": {}
+            }
+          }
         }
       ]
     },
@@ -66,7 +91,8 @@
       "method": "POST",
       "output_encoding": "no-op",
       "input_headers": [
-        "Authorization"
+        "Authorization",
+        "Content-Type"
       ],
       "backend": [
         {
@@ -75,9 +101,13 @@
           "host": [
             "http://auth-service:8081"
           ],
-          "headers_to_pass": [
-            "Authorization"
-          ]
+          "headers_to_pass": ["Authorization", "Content-Type"],
+          "extra_config": {
+            "github.com/devopsfaith/krakend-httpsecure": {
+              "allowed_hosts": [],
+              "ssl_proxy_headers": {}
+            }
+          }
         }
       ]
     },
@@ -89,77 +119,129 @@
           "url_pattern": "/health",
           "host": [
             "http://auth-service:8081"
+          ],
+          "extra_config": {
+            "github.com/devopsfaith/krakend-httpsecure": {
+              "allowed_hosts": [],
+              "ssl_proxy_headers": {}
+            }
+          }
+        }
+      ]
+    },
+    {
+      "endpoint": "/tasks",
+      "method": "POST",
+      "output_encoding": "no-op",
+      "input_headers": [
+        "Authorization"
+      ],
+      "backend": [
+        {
+          "url_pattern": "/tasks",
+          "encoding": "no-op",
+          "method": "POST",
+          "host": [
+            "http://task-service:8082"
+          ],
+          "headers_to_pass": [
+            "Authorization"
           ]
         }
       ]
     },
     {
       "endpoint": "/tasks",
-      "method": "Post",
+      "method": "GET",
       "output_encoding": "no-op",
-      "headers_to_pass": [
-        "Authorization"
+      "input_headers": [
+        "Authorization",
+        "Content-Type"
       ],
-      "extra_config": {
-        "github.com/devopsfaith/krakend-jose/validator": {
-          "alg": "HS256",
-          "disable_audience_validation": true,
-          "disable_issuer_validation": true,
-          "secret": "your-super-secret-jwt-key-here-make-it-very-long-and-secure",
-          "claims_to_headers": [
-            {
-              "claim": "user_id",
-              "header": "X-User-ID"
-            }
-          ]
-        }
-      },
       "backend": [
         {
           "url_pattern": "/tasks",
           "encoding": "no-op",
+          "method": "GET",
           "host": [
             "http://task-service:8082"
           ],
-          "headers_to_pass": [
-            "X-User-ID"
-          ]
+          "headers_to_pass": ["Authorization", "Content-Type"],
+          "extra_config": {
+            "github.com/devopsfaith/krakend-httpsecure": {
+              "allowed_hosts": [],
+              "ssl_proxy_headers": {}
+            }
+          }
         }
       ]
     },
     {
       "endpoint": "/tasks/{taskId}",
       "method": "GET",
+      "input_headers": [
+        "Authorization",
+        "Content-Type"
+      ],
       "backend": [
         {
           "url_pattern": "/tasks/{taskId}",
           "host": [
             "http://task-service:8082"
-          ]
+          ],
+          "headers_to_pass": ["Authorization", "Content-Type"],
+          "extra_config": {
+            "github.com/devopsfaith/krakend-httpsecure": {
+              "allowed_hosts": [],
+              "ssl_proxy_headers": {}
+            }
+          }
         }
       ]
     },
     {
       "endpoint": "/tasks/{taskId}",
       "method": "PUT",
+      "input_headers": [
+        "Authorization",
+        "Content-Type"
+      ],
       "backend": [
         {
           "url_pattern": "/tasks/{taskId}",
           "host": [
             "http://task-service:8082"
-          ]
+          ],
+          "headers_to_pass": ["Authorization", "Content-Type"],
+          "extra_config": {
+            "github.com/devopsfaith/krakend-httpsecure": {
+              "allowed_hosts": [],
+              "ssl_proxy_headers": {}
+            }
+          }
         }
       ]
     },
     {
       "endpoint": "/tasks/{taskId}",
       "method": "DELETE",
+      "input_headers": [
+        "Authorization",
+        "Content-Type"
+      ],
       "backend": [
         {
           "url_pattern": "/tasks/{taskId}",
           "host": [
             "http://task-service:8082"
-          ]
+          ],
+          "headers_to_pass": ["Authorization", "Content-Type"],
+          "extra_config": {
+            "github.com/devopsfaith/krakend-httpsecure": {
+              "allowed_hosts": [],
+              "ssl_proxy_headers": {}
+            }
+          }
         }
       ]
     },

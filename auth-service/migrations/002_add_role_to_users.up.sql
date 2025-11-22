@@ -1,0 +1,1 @@
+ALTER TABLE auth_schema.users ADD COLUMN role VARCHAR(50) DEFAULT 'user';

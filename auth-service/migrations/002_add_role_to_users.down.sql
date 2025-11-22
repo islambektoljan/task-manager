@@ -1,0 +1,1 @@
+ALTER TABLE auth_schema.users DROP COLUMN role;

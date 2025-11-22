@@ -43,6 +43,16 @@ func main() {
 	// Create router
 	r := gin.Default()
 
+	// Настройка CORS
+	//r.Use(cors.New(cors.Config{
+	//	AllowOrigins:     []string{"http://localhost:3000", "http://127.0.0.1:3000"},
+	//	AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+	//	AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "Accept"},
+	//	ExposeHeaders:    []string{"Content-Length"},
+	//	AllowCredentials: true,
+	//	MaxAge:           12 * time.Hour,
+	//}))
+
 	// Create auth handler and middleware
 	authHandler := handlers.NewAuthHandler(db, redisClient)
 	authMiddleware := middleware.NewAuthMiddleware(redisClient)

@@ -87,6 +87,8 @@ func (h *TaskHandler) GetTasks(c *gin.Context) {
 		return
 	}
 
+	role, _ := c.Get("role") // Получаем роль
+
 	userIDStr, ok := userID.(string)
 	if !ok {
 		c.JSON(http.StatusBadRequest, ErrorResponse{
@@ -108,14 +110,28 @@ func (h *TaskHandler) GetTasks(c *gin.Context) {
 	}
 
 	var tasks []models.Task
-	result := h.DB.Where("created_by = ?", userUUID).Find(&tasks)
-	if result.Error != nil {
-		c.JSON(http.StatusInternalServerError, ErrorResponse{
-			Success: false,
-			Error:   "Failed to fetch tasks",
-			Code:    http.StatusInternalServerError,
-		})
-		return
+
+	// Если пользователь администратор, показываем все задачи, иначе только свои
+	if role == "admin" {
+		result := h.DB.Find(&tasks)
+		if result.Error != nil {
+			c.JSON(http.StatusInternalServerError, ErrorResponse{
+				Success: false,
+				Error:   "Failed to fetch tasks",
+				Code:    http.StatusInternalServerError,
+			})
+			return
+		}
+	} else {
+		result := h.DB.Where("created_by = ?", userUUID).Find(&tasks)
+		if result.Error != nil {
+			c.JSON(http.StatusInternalServerError, ErrorResponse{
+				Success: false,
+				Error:   "Failed to fetch tasks",
+				Code:    http.StatusInternalServerError,
+			})
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, SuccessResponse{
@@ -134,6 +150,8 @@ func (h *TaskHandler) GetTask(c *gin.Context) {
 		})
 		return
 	}
+
+	role, _ := c.Get("role")
 
 	userIDStr, ok := userID.(string)
 	if !ok {
@@ -167,7 +185,14 @@ func (h *TaskHandler) GetTask(c *gin.Context) {
 	}
 
 	var task models.Task
-	result := h.DB.Where("id = ? AND created_by = ?", taskUUID, userUUID).First(&task)
+	var result *gorm.DB
+
+	if role == "admin" {
+		result = h.DB.Where("id = ?", taskUUID).First(&task)
+	} else {
+		result = h.DB.Where("id = ? AND created_by = ?", taskUUID, userUUID).First(&task)
+	}
+
 	if result.Error != nil {
 		if result.Error == gorm.ErrRecordNotFound {
 			c.JSON(http.StatusNotFound, ErrorResponse{
@@ -304,6 +329,8 @@ func (h *TaskHandler) UpdateTask(c *gin.Context) {
 		return
 	}
 
+	role, _ := c.Get("role")
+
 	userIDStr, ok := userID.(string)
 	if !ok {
 		c.JSON(http.StatusBadRequest, ErrorResponse{
@@ -347,7 +374,14 @@ func (h *TaskHandler) UpdateTask(c *gin.Context) {
 
 	// Находим задачу
 	var task models.Task
-	result := h.DB.Where("id = ? AND created_by = ?", taskUUID, userUUID).First(&task)
+	var result *gorm.DB
+
+	if role == "admin" {
+		result = h.DB.Where("id = ?", taskUUID).First(&task)
+	} else {
+		result = h.DB.Where("id = ? AND created_by = ?", taskUUID, userUUID).First(&task)
+	}
+
 	if result.Error != nil {
 		if result.Error == gorm.ErrRecordNotFound {
 			c.JSON(http.StatusNotFound, ErrorResponse{
@@ -439,6 +473,8 @@ func (h *TaskHandler) UpdateTaskStatus(c *gin.Context) {
 		return
 	}
 
+	role, _ := c.Get("role")
+
 	userIDStr, ok := userID.(string)
 	if !ok {
 		c.JSON(http.StatusBadRequest, ErrorResponse{
@@ -496,9 +532,16 @@ func (h *TaskHandler) UpdateTaskStatus(c *gin.Context) {
 		return
 	}
 
-	result := h.DB.Model(&models.Task{}).
-		Where("id = ? AND created_by = ?", taskUUID, userUUID).
-		Update("status", req.Status)
+	var result *gorm.DB
+	if role == "admin" {
+		result = h.DB.Model(&models.Task{}).
+			Where("id = ?", taskUUID).
+			Update("status", req.Status)
+	} else {
+		result = h.DB.Model(&models.Task{}).
+			Where("id = ? AND created_by = ?", taskUUID, userUUID).
+			Update("status", req.Status)
+	}
 
 	if result.Error != nil {
 		c.JSON(http.StatusInternalServerError, ErrorResponse{
@@ -539,6 +582,8 @@ func (h *TaskHandler) DeleteTask(c *gin.Context) {
 		return
 	}
 
+	role, _ := c.Get("role")
+
 	userIDStr, ok := userID.(string)
 	if !ok {
 		c.JSON(http.StatusBadRequest, ErrorResponse{
@@ -570,7 +615,13 @@ func (h *TaskHandler) DeleteTask(c *gin.Context) {
 		return
 	}
 
-	result := h.DB.Where("id = ? AND created_by = ?", taskUUID, userUUID).Delete(&models.Task{})
+	var result *gorm.DB
+	if role == "admin" {
+		result = h.DB.Where("id = ?", taskUUID).Delete(&models.Task{})
+	} else {
+		result = h.DB.Where("id = ? AND created_by = ?", taskUUID, userUUID).Delete(&models.Task{})
+	}
+
 	if result.Error != nil {
 		c.JSON(http.StatusInternalServerError, ErrorResponse{
 			Success: false,
