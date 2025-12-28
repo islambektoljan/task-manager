@@ -1,19 +1,19 @@
 # Frontend Application
 
-## 💻 Обзор
+## 💻 Overview
 
-**Frontend** — это клиентская часть приложения Task Manager, разработанная на **React 19** с использованием **TypeScript** и **Vite**. Приложение взаимодействует с микросервисами через единый API Gateway.
+**Frontend** is the client side of the Task Manager application, developed with **React 19** using **TypeScript** and **Vite**. The application interacts with microservices through a unified API Gateway.
 
-**Ключевые возможности:**
-*   Регистрация и Аутентификация (JWT).
-*   Защищенные маршруты (Private Routes).
-*   Дашборд со списком задач.
-*   Создание, редактирование и удаление задач.
-*   Фильтрация задач по статусу и приоритету.
+**Key Features:**
+*   Registration and Authentication (JWT).
+*   Protected Routes (Private Routes).
+*   Dashboard with task list.
+*   Create, edit, and delete tasks.
+*   Filter tasks by status and priority.
 
 ---
 
-## 🛠️ Технический Стек
+## 🛠️ Technical Stack
 
 *   **Build Tool:** [Vite](https://vitejs.dev/)
 *   **Framework:** [React 19](https://react.dev/)
@@ -24,37 +24,37 @@
 
 ---
 
-## 📂 Структура Проекта
+## 📂 Project Structure
 
 ```
 src/
-├── components/          # Переиспользуемые UI компоненты
-│   └── common/          # Общие компоненты (PrivateRoute, Layouts)
+├── components/          # Reusable UI components
+│   └── common/          # Common components (PrivateRoute, Layouts)
 ├── contexts/            # React Context (Global State)
-│   ├── AuthContext.tsx  # Управление auth-токеном и пользователем
-│   └── TaskContext.tsx  # Управление списком задач
-├── hooks/               # Кастомные хуки
-├── pages/               # Страницы приложения
-│   ├── Login.tsx        # Вход
-│   ├── Register.tsx     # Регистрация
-│   ├── Dashboard.tsx    # Список задач
-│   └── TaskPage.tsx     # Детали задачи
-├── services/            # Логика API запросов
-│   ├── api.ts           # Axios instance с перехватчиками
-│   ├── authService.ts   # API авторизации
-│   └── taskService.ts   # API задач
-├── types/               # TypeScript интерфейсы
-├── App.tsx              # Роутинг и провайдеры
-└── main.tsx             # Точка входа
+│   ├── AuthContext.tsx  # Auth token and user management
+│   └── TaskContext.tsx  # Task list management
+├── hooks/               # Custom hooks
+├── pages/               # Application pages
+│   ├── Login.tsx        # Login
+│   ├── Register.tsx     # Registration
+│   ├── Dashboard.tsx    # Task list
+│   └── TaskPage.tsx     # Task details
+├── services/            # API logic
+│   ├── api.ts           # Axios instance with interceptors
+│   ├── authService.ts   # Auth API
+│   └── taskService.ts   # Task API
+├── types/               # TypeScript interfaces
+├── App.tsx              # Routing and providers
+└── main.tsx             # Entry point
 ```
 
 ---
 
-## ⚙️ Конфигурация
+## ⚙️ Configuration
 
-Frontend ожидает, что **API Gateway** запущен и доступен по адресу `http://localhost:8000`.
+The frontend expects the **API Gateway** to be running and accessible at `http://localhost:8000`.
 
-Конфигурация API URL находится в `src/services/api.ts`:
+API URL configuration is located in `src/services/api.ts`:
 ```typescript
 const api = axios.create({
   baseURL: 'http://localhost:8000',
@@ -64,51 +64,51 @@ const api = axios.create({
 
 ---
 
-## 🚀 Запуск и Разработка
+## 🚀 Running and Development
 
-### Установка зависимостей
+### Install Dependencies
 ```bash
 npm install
 ```
 
-### Запуск сервера разработки
+### Start Dev Server
 ```bash
 npm run dev
 ```
-Приложение будет доступно по адресу: http://localhost:5173
+The app will be available at: http://localhost:5173
 
-### Сборка для продакшена
+### Build for Production
 ```bash
 npm run build
 ```
-Результат сборки будет в папке `dist/`.
+Build output will be in the `dist/` folder.
 
 ---
 
-## 🔐 Аутентификация
+## 🔐 Authentication
 
 ### Token Management
-Приложение использует **JWT (Access Token)** для авторизации.
-*   При входе токен сохраняется в `localStorage`.
-*   `AuthContext` инициализирует состояние, проверяя наличие токена.
-*   Axios Interceptor (`src/services/api.ts`) автоматически добавляет заголовок `Authorization: Bearer <token>` ко всем запросам.
+The application uses **JWT (Access Token)** for authorization.
+*   On login, the token is stored in `localStorage`.
+*   `AuthContext` initializes state by checking for the token.
+*   Axios Interceptor (`src/services/api.ts`) automatically adds the `Authorization: Bearer <token>` header to all requests.
 
 ### Protected Routes
-Компонент `<PrivateRoute>` проверяет состояние аутентификации. Если пользователь не авторизован, он перенаправляется на `/login`.
+The `<PrivateRoute>` component checks authentication state. If the user is not logged in, they are redirected to `/login`.
 
 ---
 
-## 🔌 API Интеграция
+## 🔌 API Integration
 
-Frontend общается только с API Gateway (`localhost:8000`), который проксирует запросы к микросервисам:
+Frontend communicates only with the API Gateway (`localhost:8000`), which proxies requests to microservices:
 *   `/login`, `/register` -> **Auth Service**
 *   `/tasks` -> **Task Service**
 *   `/profile` -> **User Service**
 
 ---
 
-## 📝 Разработка новых функций
+## 📝 Developing New Features
 
-1.  **Добавить страницу:** Создайте компонент в `src/pages/` и добавьте маршрут в `src/App.tsx`.
-2.  **Добавить API вызов:** Опишите метод в соответствующем сервисе в `src/services/`.
-3.  **Добавить тип:** Обновите интерфейсы в `src/types/`.
+1.  **Add Page:** Create a component in `src/pages/` and add a route in `src/App.tsx`.
+2.  **Add API Call:** Describe the method in the corresponding service in `src/services/`.
+3.  **Add Type:** Update interfaces in `src/types/`.

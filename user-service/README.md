@@ -1,24 +1,24 @@
 # User Service
 
-## 👤 Обзор
+## 👤 Overview
 
-**User Service** отвечает за управление профилями пользователей.
-В отличие от Auth Service, который занимается безопасностью (логин/пароль), User Service хранит расширенную информацию о пользователе (имя, аватар, настройки).
+**User Service** is responsible for managing user profiles.
+Unlike Auth Service, which handles security (login/password), User Service stores extended user information (name, avatar, settings).
 
-> ⚠️ **Статус:** В настоящее время сервис находится в начальной стадии разработки (Skeleton).
+> ⚠️ **Status:** Currently in early development stage (Skeleton).
 
 ---
 
-## 🛠️ Технический Стек
+## 🛠️ Technical Stack
 
-*   **Язык:** Go 1.21+
+*   **Language:** Go 1.21+
 *   **Web Framework:** [Gin Gonic](https://github.com/gin-gonic/gin)
-*   **Database:** PostgreSQL (схема `user_schema`)
+*   **Database:** PostgreSQL (schema `user_schema`)
 *   **ORM:** [GORM](https://gorm.io/)
 
 ---
 
-## ⚙️ Конфигурация (.env)
+## ⚙️ Configuration (.env)
 
 ```bash
 PORT=8084
@@ -27,13 +27,13 @@ DB_URL=postgres://postgres:password@postgres:5432/taskmanager?sslmode=disable
 
 ---
 
-## 🔌 API Endpoints (Планируемые)
+## 🔌 API Endpoints (Planned)
 
-### 1. Получить профиль
+### 1. Get Profile
 `GET /profile`
-*Требует Header:* `Authorization: Bearer <token>`
+*Requires Header:* `Authorization: Bearer <token>`
 
-Возвращает информацию о текущем пользователе.
+Returns information about the current user.
 
 **Response:**
 ```json
@@ -47,9 +47,9 @@ DB_URL=postgres://postgres:password@postgres:5432/taskmanager?sslmode=disable
 }
 ```
 
-### 2. Обновить профиль
+### 2. Update Profile
 `PUT /profile`
-*Требует Header:* `Authorization: Bearer <token>`
+*Requires Header:* `Authorization: Bearer <token>`
 
 **Request:**
 ```json
@@ -62,11 +62,11 @@ DB_URL=postgres://postgres:password@postgres:5432/taskmanager?sslmode=disable
 
 ---
 
-## 🚀 Разработка
+## 🚀 Development
 
-Сервис подключен к общей сети `app-network` и базе данных, но основная бизнес-логика еще не реализована.
+The service is connected to the shared `app-network` and database, but the main business logic is yet to be implemented.
 
 ```bash
-# Запуск (заглушка)
+# Run (skeleton)
 go run main.go
 ```

@@ -1,29 +1,29 @@
 # API Gateway (KrakenD)
 
-## 📖 Обзор
+## 📖 Overview
 
-Этот сервис является единой точкой входа (Entry Point) для всей микросервисной архитектуры Task Manager. Он построен на базе [KrakenD](https://www.krakend.io/) — высокопроизводительного API Gateway.
+This service serves as the single entry point for the entire Task Manager microservices architecture. It is built on [KrakenD](https://www.krakend.io/) — a high-performance API Gateway.
 
-**Основные функции:**
-1. **Маршрутизация (Routing):** Перенаправление запросов от клиента к соответствующим микросервисам (Auth, Task, User, Submission).
-2. **Агрегация:** Возможность объединения ответов от нескольких сервисов (в текущей конфигурации используется `no-op` для прямой прокси-передачи).
-3. **Безопасность (CORS):** Управление правилами Cross-Origin Resource Sharing.
-4. **Манипуляция заголовками:** Проброс токенов авторизации и заголовков контента.
-5. **Сокрытие архитектуры:** Клиент знает только о порте `8000`, внутренняя структура сервисов скрыта (порты 8081, 8082 и т.д. недоступны напрямую извне в продакшене).
+**Key Features:**
+1. **Routing:** Redirects client requests to the appropriate microservices (Auth, Task, User, Submission).
+2. **Aggregation:** Capable of merging responses from multiple services (currently configured as `no-op` for direct proxying).
+3. **Security (CORS):** Manages Cross-Origin Resource Sharing rules.
+4. **Header Manipulation:** Forwards authorization tokens and content headers.
+5. **Architecture Hiding:** The client only interacts with port `8000`, hiding internal service ports (`8081`, `8082`, etc.) from direct external access in production.
 
 ---
 
-## ⚙️ Конфигурация
+## ⚙️ Configuration
 
-Конфигурация находится в файле `krakend.json`.
+The configuration is located in the `krakend.json` file.
 
-### Глобальные настройки
+### Global Settings
 - **Port:** `8000`
-- **Version:** `3` (Версия конфигурации KrakenD)
-- **Logging:** Включен уровень `DEBUG` с префиксом `[KRAKEND]`.
+- **Version:** `3` (KrakenD configuration version)
+- **Logging:** Enabled at `DEBUG` level with `[KRAKEND]` prefix.
 
 ### CORS (Cross-Origin Resource Sharing)
-Настроен для взаимодействия с Frontend приложением:
+Configured to allow interaction with the Frontend application:
 ```json
 "github_com/devopsfaith/krakend-cors": {
   "allow_origins": ["http://localhost:3000", "http://127.0.0.1:3000"],
@@ -36,68 +36,68 @@
 
 ---
 
-## 🛣️ Маршруты (Endpoints)
+## 🛣️ Endpoints
 
-Все запросы поступают на `http://localhost:8000`. KrakenD перенаправляет их согласно таблице ниже.
+All requests go to `http://localhost:8000`. KrakenD routes them according to the table below.
 
-### 🔐 Auth Service (Сервис Авторизации)
+### 🔐 Auth Service
 *Backend Host:* `http://auth-service:8081`
 
-| Endpoint Gateway | Метод | Описание | Backend Endpoint | Особенности |
-|------------------|-------|----------|------------------|-------------|
-| `/register`      | POST  | Регистрация | `/register`      | Прямое проксирование |
-| `/login`         | POST  | Вход | `/login`         | Прямое проксирование |
-| `/logout`        | POST  | Выход | `/logout`        | Пробрасываются заголовки `Authorization`, `Content-Type` |
-| `/refresh`       | POST  | Обновление токена | `/refresh` | Пробрасываются заголовки `Authorization`, `Content-Type` |
-| `/health`        | GET   | Проверка здоровья | `/health`        | - |
+| Gateway Endpoint | Method | Description | Backend Endpoint | Notes |
+|------------------|--------|-------------|------------------|-------|
+| `/register`      | POST   | Registration | `/register`      | Direct proxy |
+| `/login`         | POST   | Login        | `/login`         | Direct proxy |
+| `/logout`        | POST   | Logout       | `/logout`        | Forwards `Authorization`, `Content-Type` headers |
+| `/refresh`       | POST   | Refresh Token| `/refresh`       | Forwards `Authorization`, `Content-Type` headers |
+| `/health`        | GET    | Health Check | `/health`        | - |
 
-### 📋 Task Service (Сервис Задач)
+### 📋 Task Service
 *Backend Host:* `http://task-service:8082`
 
-| Endpoint Gateway | Метод | Описание | Backend Endpoint | Особенности |
-|------------------|-------|----------|------------------|-------------|
-| `/tasks`         | GET   | Получить список задач | `/tasks` | Проброс `Authorization` |
-| `/tasks`         | POST  | Создать задачу | `/tasks` | Проброс `Authorization` |
-| `/tasks/{taskId}`| GET   | Получить задачу по ID | `/tasks/{taskId}` | - |
-| `/tasks/{taskId}`| PUT   | Обновить задачу | `/tasks/{taskId}` | - |
-| `/tasks/{taskId}`| DELETE| Удалить задачу | `/tasks/{taskId}` | - |
+| Gateway Endpoint | Method | Description | Backend Endpoint | Notes |
+|------------------|--------|-------------|------------------|-------|
+| `/tasks`         | GET    | Get task list| `/tasks`        | Forwards `Authorization` |
+| `/tasks`         | POST   | Create task  | `/tasks`        | Forwards `Authorization` |
+| `/tasks/{taskId}`| GET    | Get task by ID|`/tasks/{taskId}`| - |
+| `/tasks/{taskId}`| PUT    | Update task  | `/tasks/{taskId}`| - |
+| `/tasks/{taskId}`| DELETE | Delete task  | `/tasks/{taskId}`| - |
 
-> **Примечание:** Параметры пути (например, `{taskId}`) передаются в бэкенд без изменений.
+> **Note:** Path parameters (e.g., `{taskId}`) are passed to the backend unchanged.
 
-### 📮 Task Submission Service (Сервис Сдачи Решений)
+### 📮 Task Submission Service
 *Backend Host:* `http://task-submission-service:8083`
 
-| Endpoint Gateway | Метод | Описание | Backend Endpoint |
-|------------------|-------|----------|------------------|
-| `/submissions`   | POST  | Отправить решение | `/submissions` |
-| `/submissions/{id}`| GET | Получить решение | `/submissions/{id}` |
+| Gateway Endpoint | Method | Description | Backend Endpoint |
+|------------------|--------|-------------|------------------|
+| `/submissions`   | POST   | Submit solution | `/submissions` |
+| `/submissions/{id}`| GET  | Get submission | `/submissions/{id}` |
 
-### 👤 User Service (Сервис Пользователей)
+### 👤 User Service
 *Backend Host:* `http://user-service:8084`
 
-| Endpoint Gateway | Метод | Описание | Backend Endpoint |
-|------------------|-------|----------|------------------|
-| `/profile`       | GET   | Получить профиль | `/profile` |
-| `/profile`       | PUT   | Обновить профиль | `/profile` |
+| Gateway Endpoint | Method | Description | Backend Endpoint |
+|------------------|--------|-------------|------------------|
+| `/profile`       | GET    | Get profile  | `/profile` |
+| `/profile`       | PUT    | Update profile| `/profile` |
 
 ---
 
-## 🛠️ Технические Детали
+## 🛠️ Technical Details
 
 ### Encoding: `no-op`
-Во всех эндпоинтах используется `output_encoding: "no-op"` и `encoding: "no-op"`.
-Это означает, что **KrakenD не пытается парсить или изменять тело запроса/ответа**. Он работает как прозрачный прокси.
-*   **Плюс:** Высокая производительность, поддержка любого формата данных (JSON, XML, Binary).
-*   **Минус:** Нельзя использовать функции манипуляции данными KrakenD (фильтрация полей, переименование). В данном проекте это осознанный выбор для упрощения.
+All endpoints use `output_encoding: "no-op"` and `encoding: "no-op"`.
+This means **KrakenD does not attempt to parse or modify the request/response body**. It acts as a transparent proxy.
+*   **Pros:** High performance, support for any data format (JSON, XML, Binary).
+*   **Cons:** Cannot use KrakenD data manipulation features (field filtering, renaming). This is a deliberate choice for simplicity in this project.
 
-### Сеть
-Сервис должен находиться в той же Docker-сети, что и микросервисы (`app-network`), чтобы иметь доступ к ним по именам хостов (`auth-service`, `task-service` и т.д.).
+### Network
+The service must be in the same Docker network as the microservices (`app-network`) to access them via hostnames (`auth-service`, `task-service`, etc.).
 
 ---
 
-## 🚀 Запуск
+## 🚀 Running
 
-Сервис запускается как часть `docker-compose`.
+The service runs as part of `docker-compose`.
 
 ```yaml
   api-gateway:
@@ -113,15 +113,14 @@
       - app-network
 ```
 
-Для проверки конфигурации:
-`krakend check -c krakend.json` (требует установленного локально KrakenD, в докере это делается автоматически).
+To check configuration:
+`krakend check -c krakend.json` (requires local KrakenD installation; done automatically in Docker).
 
 ---
 
-## 🔍 Отладка
+## 🔍 Debugging
 
-Если запросы не проходят:
-1. Проверьте логи: `docker-compose logs -f api-gateway`.
-2. Убедитесь, что бэкенд-сервисы доступны из контейнера gateway.
-3. Проверьте CORS заголовки в браузере (вкладка Network).
-
+If requests are failing:
+1. Check logs: `docker-compose logs -f api-gateway`.
+2. Ensure backend services are accessible from the gateway container.
+3. Check CORS headers in the browser (Network tab).

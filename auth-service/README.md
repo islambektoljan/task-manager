@@ -1,76 +1,76 @@
 # Auth Service
 
-## 🔐 Обзор
+## 🔐 Overview
 
-**Auth Service** — это критически важный микросервис, отвечающий за безопасность всей системы Task Manager. Он управляет регистрацией пользователей, аутентификацией (вход в систему), выдачей и валидацией JWT токенов, а также управлением сессиями.
+**Auth Service** is a critical microservice responsible for the security of the entire Task Manager system. It manages user registration, authentication (login), JWT token issuance and validation, and session management.
 
-**Ключевые возможности:**
-*   Регистрация новых пользователей с хешированием паролей.
-*   Аутентификация и выдача JWT (JSON Web Tokens).
-*   Ролевая модель доступа (`admin`, `user`).
-*   Безопасный выход (Logout) с использованием черного списка токенов.
-*   Обновление токенов (Refresh Token flow).
-*   Метрики Prometheus и Expvar.
+**Key Features:**
+*   New user registration with password hashing.
+*   Authentication and JWT (JSON Web Tokens) issuance.
+*   Role-based access control (`admin`, `user`).
+*   Secure logout using a token blacklist.
+*   Token refreshing (Refresh Token flow).
+*   Prometheus and Expvar metrics.
 
 ---
 
-## 🛠️ Технический Стек
+## 🛠️ Technical Stack
 
-*   **Язык:** Go 1.21+
+*   **Language:** Go 1.21+
 *   **Web Framework:** [Gin Gonic](https://github.com/gin-gonic/gin)
 *   **Database:** PostgreSQL (Driver: `pgx` via GORM)
 *   **ORM:** [GORM](https://gorm.io/)
-*   **Cache:** Redis (для Blacklist токенов)
+*   **Cache:** Redis (for Token Blacklist)
 *   **Auth:** `golang-jwt/jwt/v4`
-*   **Security:** `bcrypt` (для паролей)
+*   **Security:** `bcrypt` (for passwords)
 
 ---
 
-## ⚙️ Конфигурация (.env)
+## ⚙️ Configuration (.env)
 
-Сервис настраивается через переменные окружения:
+Configured via environment variables:
 
 ```bash
-# Порт запуска сервиса
+# Service port
 PORT=8081
 
-# Подключение к PostgreSQL
-# Формат: user:password@host:port/dbname
+# PostgreSQL Connection
+# Format: user:password@host:port/dbname
 DB_URL=postgres://postgres:password@postgres:5432/taskmanager?sslmode=disable
 
-# Подключение к Redis
+# Redis Connection
 REDIS_URL=redis://redis:6379
 
-# Секретный ключ для подписи JWT токенов
-# ВАЖНО: Должен быть длинным и сложным в продакшене
+# Secret key for JWT signing
+# IMPORTANT: Must be long and secure in production
 JWT_SECRET=your-super-secret-jwt-key-here-make-it-very-long-and-secure
 ```
 
 ---
 
-## 💾 База Данных
+## 💾 Database
 
-Сервис использует схему `auth_schema` в PostgreSQL.
+Uses the `auth_schema` in PostgreSQL.
 
-### Таблица `users`
+### Table `users`
 
-| Поле | Тип | Описание |
-|------|-----|----------|
-| `id` | UUID | Первичный ключ (автогенерация) |
-| `email` | VARCHAR(255) | Уникальный email пользователя |
-| `password` | VARCHAR(255) | Хеш пароля (Bcrypt) |
-| `role` | VARCHAR(50) | Роль (`user` или `admin`) |
-| `created_at`| TIMESTAMP | Дата создания |
-| `updated_at`| TIMESTAMP | Дата обновления |
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | UUID | Primary Key (auto-generated) |
+| `email` | VARCHAR(255) | Unique user email |
+| `password` | VARCHAR(255) | Password hash (Bcrypt) |
+| `role` | VARCHAR(50) | Role (`user` or `admin`) |
+| `created_at`| TIMESTAMP | Creation date |
+| `updated_at`| TIMESTAMP | Update date |
 
 ---
 
 ## 🔌 API Endpoints
 
-### 1. Регистрация
+### 1. Register
 `POST /register`
 
-Создает нового пользователя.
+Creates a new user.
 
 **Request:**
 ```json
@@ -80,7 +80,7 @@ JWT_SECRET=your-super-secret-jwt-key-here-make-it-very-long-and-secure
   "role": "user" 
 }
 ```
-*(Роль "admin" может быть создана только если это разрешено логикой, по умолчанию создается "user")*
+*(Role "admin" can only be created if permitted by logic; defaults to "user")*
 
 **Response (201 Created):**
 ```json
@@ -95,10 +95,10 @@ JWT_SECRET=your-super-secret-jwt-key-here-make-it-very-long-and-secure
 }
 ```
 
-### 2. Логин
+### 2. Login
 `POST /login`
 
-Аутентификация пользователя и выдача токена.
+Authenticates user and issues a token.
 
 **Request:**
 ```json
@@ -121,11 +121,11 @@ JWT_SECRET=your-super-secret-jwt-key-here-make-it-very-long-and-secure
 }
 ```
 
-### 3. Выход (Logout)
+### 3. Logout
 `POST /logout`
-*Требует Header:* `Authorization: Bearer <token>`
+*Requires Header:* `Authorization: Bearer <token>`
 
-Инвалидирует текущий токен, добавляя его в "Черный список" в Redis до истечения срока его жизни.
+Invalidates the current token by adding it to the "Blacklist" in Redis until its expiration.
 
 **Response (200 OK):**
 ```json
@@ -137,11 +137,11 @@ JWT_SECRET=your-super-secret-jwt-key-here-make-it-very-long-and-secure
 }
 ```
 
-### 4. Обновление токена (Refresh)
+### 4. Refresh Token
 `POST /refresh`
-*Требует Header:* `Authorization: Bearer <token>`
+*Requires Header:* `Authorization: Bearer <token>`
 
-Позволяет получить новый токен, если старый валиден (или близок к истечению, зависит от клиентской логики). Старый токен добавляется в Blacklist.
+Allows obtaining a new token if the old one is valid (or near expiry, depending on client logic). The old token is added to the Blacklist.
 
 **Response (200 OK):**
 ```json
@@ -157,7 +157,7 @@ JWT_SECRET=your-super-secret-jwt-key-here-make-it-very-long-and-secure
 ### 5. Health Check
 `GET /health`
 
-Проверяет доступность БД и Redis.
+Checks DB and Redis availability.
 
 **Response (200 OK):**
 ```json
@@ -172,46 +172,46 @@ JWT_SECRET=your-super-secret-jwt-key-here-make-it-very-long-and-secure
 
 ---
 
-## 🛡️ Безопасность и JWT
+## 🛡️ Security & JWT
 
-### Структура Токена (Payload)
-Токен содержит следующие Claims:
-*   `user_id`: UUID пользователя
-*   `role`: Роль пользователя
-*   `exp`: Время истечения (Unix timestamp)
-*   `iat`: Время выдачи
+### Token Structure (Payload)
+The token contains the following Claims:
+*   `user_id`: User UUID
+*   `role`: User Role
+*   `exp`: Expiration time (Unix timestamp)
+*   `iat`: Issued at
 
 ### Blacklist (Redis)
-Для реализации мгновенного логаута (что невозможно с stateless JWT) используется Redis.
-*   При вызове `/logout` токен помещается в Redis.
-*   Ключ: `blacklist:<token_string>`
-*   TTL ключа равен оставшемуся времени жизни токена.
-*   Middleware `AuthMiddleware` проверяет наличие токена в Redis при каждом запросе.
+To implement instant logout (which is impossible with stateless JWT), Redis is used.
+*   On `/logout`, the token is stored in Redis.
+*   Key: `blacklist:<token_string>`
+*   Key TTL equals the remaining token lifetime.
+*   `AuthMiddleware` checks for the token in Redis on every request.
 
 ---
 
-## 📊 Мониторинг
+## 📊 Monitoring
 
-Сервис экспортирует метрики для Prometheus и стандартные Expvar метрики Go.
+The service exports metrics for Prometheus and standard Go Expvar metrics.
 
-*   `/metrics` — Prometheus метрики (запросы, ошибки, латенси).
-*   `/debug/vars` — Внутренние метрики рантайма Go (GC, горутины, память).
+*   `/metrics` — Prometheus metrics (requests, errors, latency).
+*   `/debug/vars` — Internal Go runtime metrics (GC, goroutines, memory).
 
 ---
 
-## 🚀 Запуск и Разработка
+## 🚀 Running and Development
 
-### Локальный запуск (без Docker)
+### Local Run (without Docker)
 
-1.  Убедитесь, что PostgreSQL и Redis запущены локально.
-2.  Создайте файл `.env` на основе примера выше.
-3.  Запустите:
+1.  Ensure PostgreSQL and Redis are running locally.
+2.  Create an `.env` file based on the example above.
+3.  Run:
     ```bash
     go mod download
     go run main.go
     ```
 
-### Запуск тестов
+### Run Tests
 ```bash
 go test ./...
 ```

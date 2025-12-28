@@ -1,23 +1,23 @@
 # Task Submission Service
 
-## 📮 Обзор
+## 📮 Overview
 
-**Task Submission Service** отвечает за процесс сдачи выполненных задач. Он позволяет пользователям отправлять результаты работы (ссылки, файлы, комментарии) по конкретным задачам.
+**Task Submission Service** is responsible for the task submission process. It allows users to submit work results (links, files, comments) for specific tasks.
 
-> ⚠️ **Статус:** В настоящее время сервис находится в начальной стадии разработки (Skeleton).
+> ⚠️ **Status:** Currently in early development stage (Skeleton).
 
 ---
 
-## 🛠️ Технический Стек
+## 🛠️ Technical Stack
 
-*   **Язык:** Go 1.21+
+*   **Language:** Go 1.21+
 *   **Web Framework:** [Gin Gonic](https://github.com/gin-gonic/gin)
-*   **Database:** PostgreSQL (схема `submission_schema`)
+*   **Database:** PostgreSQL (schema `submission_schema`)
 *   **ORM:** [GORM](https://gorm.io/)
 
 ---
 
-## ⚙️ Конфигурация (.env)
+## ⚙️ Configuration (.env)
 
 ```bash
 PORT=8083
@@ -26,28 +26,28 @@ DB_URL=postgres://postgres:password@postgres:5432/taskmanager?sslmode=disable
 
 ---
 
-## 💾 База Данных
+## 💾 Database
 
-Сервис планирует использовать таблицу `submissions` в схеме `submission_schema`.
+The service plans to use the `submissions` table in `submission_schema`.
 
-| Поле | Тип | Описание |
-|------|-----|----------|
-| `id` | UUID | ID отправки |
-| `task_id` | UUID | ID задачи (связь с Task Service) |
-| `user_id` | UUID | ID пользователя (автор) |
-| `solution` | TEXT | Текст решения или ссылка |
-| `status` | VARCHAR | Статус (`submitted`, `reviewed`) |
-| `submitted_at` | TIMESTAMP | Дата отправки |
-| `score` | INT | Оценка (0-100) |
-| `comments` | TEXT | Комментарий ревьюера |
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | UUID | Submission ID |
+| `task_id` | UUID | Task ID (linked to Task Service) |
+| `user_id` | UUID | User ID (author) |
+| `solution` | TEXT | Solution text or link |
+| `status` | VARCHAR | Status (`submitted`, `reviewed`) |
+| `submitted_at` | TIMESTAMP | Submission date |
+| `score` | INT | Score (0-100) |
+| `comments` | TEXT | Reviewer comments |
 
 ---
 
-## 🔌 API Endpoints (Планируемые)
+## 🔌 API Endpoints (Planned)
 
-### 1. Отправить решение
+### 1. Submit Solution
 `POST /submissions`
-*Требует Header:* `Authorization: Bearer <token>`
+*Requires Header:* `Authorization: Bearer <token>`
 
 **Request:**
 ```json
@@ -66,17 +66,13 @@ DB_URL=postgres://postgres:password@postgres:5432/taskmanager?sslmode=disable
 }
 ```
 
-### 2. Получить решение
-`GET /submissions/:id`
-*Требует Header:* `Authorization: Bearer <token>`
-
 ---
 
-## 🚀 Разработка
+## 🚀 Development
 
-Сервис подключен к общей сети `app-network` и готов к реализации бизнес-логики.
+The service is connected to the shared `app-network` and ready for business logic implementation.
 
 ```bash
-# Запуск (заглушка)
+# Run (skeleton)
 go run main.go
 ```

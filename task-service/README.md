@@ -1,76 +1,76 @@
 # Task Service
 
-## 📋 Обзор
+## 📋 Overview
 
-**Task Service** отвечает за управление задачами в системе. Это RESTful микросервис, обеспечивающий полный цикл CRUD (Create, Read, Update, Delete) операций с задачами.
+**Task Service** is responsible for managing tasks within the system. It is a RESTful microservice providing full CRUD (Create, Read, Update, Delete) operations for tasks.
 
-**Ключевые возможности:**
-*   Создание, чтение, обновление и удаление задач.
-*   Фильтрация списка задач (по статусу, приоритету).
-*   Пагинация результатов.
-*   Валидация данных.
-*   Изоляция данных: задачи привязаны к пользователям (User ID).
+**Key Features:**
+*   Create, read, update, and delete tasks.
+*   Filter task lists (by status, priority).
+*   Result pagination.
+*   Data validation.
+*   Data isolation: tasks are linked to users (User ID).
 
 ---
 
-## 🛠️ Технический Стек
+## 🛠️ Technical Stack
 
-*   **Язык:** Go 1.21+
+*   **Language:** Go 1.21+
 *   **Web Framework:** [Gin Gonic](https://github.com/gin-gonic/gin)
 *   **Database:** PostgreSQL (Driver: `pgx` via GORM)
 *   **ORM:** [GORM](https://gorm.io/)
 
 ---
 
-## ⚙️ Конфигурация (.env)
+## ⚙️ Configuration (.env)
 
 ```bash
-# Порт запуска сервиса
+# Service port
 PORT=8082
 
-# Подключение к PostgreSQL
+# PostgreSQL Connection
 DB_URL=postgres://postgres:password@postgres:5432/taskmanager?sslmode=disable
 ```
 
 ---
 
-## 💾 База Данных
+## 💾 Database
 
-Сервис использует схему `task_schema` в PostgreSQL.
+Uses the `task_schema` in PostgreSQL.
 
-### Таблица `tasks`
+### Table `tasks`
 
-| Поле | Тип | Описание |
-|------|-----|----------|
-| `id` | UUID | Первичный ключ (автогенерация) |
-| `title` | VARCHAR(255) | Название задачи (обязательно) |
-| `description` | TEXT | Подробное описание |
-| `status` | VARCHAR(50) | Статус (см. ниже) |
-| `priority` | VARCHAR(50) | Приоритет (см. ниже) |
-| `due_date` | TIMESTAMP | Срок выполнения |
-| `created_by` | UUID | ID создателя (ссылка на User Service) |
-| `created_at`| TIMESTAMP | Дата создания |
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | UUID | Primary Key (auto-generated) |
+| `title` | VARCHAR(255) | Task title (required) |
+| `description` | TEXT | Detailed description |
+| `status` | VARCHAR(50) | Status (see below) |
+| `priority` | VARCHAR(50) | Priority (see below) |
+| `due_date` | TIMESTAMP | Due date |
+| `created_by` | UUID | Creator ID (link to User Service) |
+| `created_at`| TIMESTAMP | Creation date |
 
-**Индексы** созданы для полей: `created_by`, `status`, `priority`, `due_date`.
+**Indexes** created for fields: `created_by`, `status`, `priority`, `due_date`.
 
 ---
 
 ## 🔌 API Endpoints
 
-Все запросы валидируются на наличие заголовка `Authorization`, который пробрасывается через API Gateway. Хотя сам Task Service не проверяет подпись JWT (это делает Gateway/Auth Service), он извлекает `user_id` из токена для фильтрации доступа.
+All requests are validated for an `Authorization` header, forwarded by the API Gateway. Although Task Service doesn't verify the JWT signature (Gateway/Auth Service does), it extracts `user_id` from the token for access filtering.
 
-### 1. Получить список задач
+### 1. Get Task List
 `GET /tasks`
 
-**Query Параметры:**
-*   `status`: Фильтр по статусу (напр. `pending`)
-*   `priority`: Фильтр по приоритету (напр. `high`)
-*   `page`: Номер страницы (по умолчанию 1)
-*   `limit`: Количество на странице (по умолчанию 10)
+**Query Parameters:**
+*   `status`: Filter by status (e.g., `pending`)
+*   `priority`: Filter by priority (e.g., `high`)
+*   `page`: Page number (default 1)
+*   `limit`: Items per page (default 10)
 
-**Пример:** `GET /tasks?status=in_progress&priority=high&page=1&limit=5`
+**Example:** `GET /tasks?status=in_progress&priority=high&page=1&limit=5`
 
-### 2. Создать задачу
+### 2. Create Task
 `POST /tasks`
 
 **Body:**
@@ -83,15 +83,15 @@ DB_URL=postgres://postgres:password@postgres:5432/taskmanager?sslmode=disable
 }
 ```
 
-### 3. Получить задачу по ID
+### 3. Get Task by ID
 `GET /tasks/:id`
 
-Возвращает задачу, только если она принадлежит текущему пользователю.
+Returns a task only if it belongs to the current user.
 
-### 4. Обновить задачу
+### 4. Update Task
 `PUT /tasks/:id`
 
-Полное обновление полей задачи.
+Full update of task fields.
 
 **Body:**
 ```json
@@ -103,10 +103,10 @@ DB_URL=postgres://postgres:password@postgres:5432/taskmanager?sslmode=disable
 }
 ```
 
-### 5. Обновить статус
+### 5. Update Status
 `PATCH /tasks/:id/status`
 
-Быстрое обновление статуса.
+Quick status update.
 
 **Body:**
 ```json
@@ -115,34 +115,34 @@ DB_URL=postgres://postgres:password@postgres:5432/taskmanager?sslmode=disable
 }
 ```
 
-### 6. Удалить задачу
+### 6. Delete Task
 `DELETE /tasks/:id`
 
 ---
 
-## 📊 Бизнес-логика
+## 📊 Business Logic
 
-### Статусы (`status`)
-*   `pending` (По умолчанию)
+### Statuses (`status`)
+*   `pending` (Default)
 *   `in_progress`
 *   `completed`
 *   `cancelled`
 
-### Приоритеты (`priority`)
+### Priorities (`priority`)
 *   `low`
-*   `medium` (По умолчанию)
+*   `medium` (Default)
 *   `high`
 *   `urgent`
 
 ---
 
-## 🚀 Запуск
+## 🚀 Running
 
-### Локально
+### Local
 ```bash
 go mod download
 go run main.go
 ```
 
 ### Docker
-Сервис запускается в контейнере `task-service` и доступен внутри сети Docker по порту `8082`.
+The service runs in the `task-service` container and is available within the Docker network on port `8082`.
